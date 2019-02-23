@@ -1,0 +1,4 @@
+apiVersion: v1
+description: Envoy Helm chart for Kubernetes
+name: envoy
+version: 0.1.0

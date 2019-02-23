@@ -1,0 +1,45 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: {{ template "kubernetes.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    component: node-exporter
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "kubernetes.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "kubernetes.name" . }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      nodeSelector:
+        {{- range $key, $val := .Values.envoyNodeSelector }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end}}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.envoyImageName }}:{{ .Values.envoyImageVersion }}"
+          ports:
+          - name: envoy
+            containerPort: {{ .Values.envoyConfig.port }}
+          - name: metrics
+            containerPort: {{ .Values.envoyConfig.adminPort }}
+          resources:
+{{ toYaml .Values.envoyResources | indent 12 }}
+          volumeMounts:
+          - name: envoy-config
+            mountPath: /etc/envoy
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.envoyConfig.port }}
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: {{ template "kubernetes.name" . }}
